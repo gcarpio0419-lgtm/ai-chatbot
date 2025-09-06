@@ -1,0 +1,5 @@
+.env
+node_modules
+tts-server/venv/
+tts-server/__pycache__/
+tts-server/output.wav
