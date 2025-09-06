@@ -4,9 +4,10 @@ from TTS.api import TTS
 import torch
 import soundfile as sf
 
-# --- NEW: Import the SECOND necessary class for the security fix ---
+# --- NEW: Import ALL necessary classes for the security fix ---
 from TTS.tts.configs.xtts_config import XttsConfig
-from TTS.tts.models.xtts import XttsAudioConfig # This is the new class from the error log
+from TTS.tts.models.xtts import XttsAudioConfig
+from TTS.config.shared_configs import BaseDatasetConfig  # Add this missing import
 from torch.serialization import add_safe_globals
 
 # --- 1. SETUP ---
@@ -23,9 +24,23 @@ speaker_wav_path = os.path.join(os.getcwd(), "my_voice.wav")
 if not os.path.exists(speaker_wav_path):
     raise ValueError(f"Voice sample not found at path: {speaker_wav_path}. Please add a 'my_voice.wav' file to the 'tts-server' directory.")
 
-# --- NEW: Apply the security fix for BOTH classes BEFORE loading the model ---
-# This tells PyTorch that both custom classes from the TTS library are safe to load.
-add_safe_globals([XttsConfig, XttsAudioConfig])
+# --- NEW: Apply the security fix for required classes BEFORE loading the model ---
+# Start with the basic classes we know exist
+add_safe_globals([XttsConfig, XttsAudioConfig, BaseDatasetConfig])
+
+# Try to add XttsArgs if we can find it
+XttsArgs = None
+try:
+    from TTS.tts.models.xtts import XttsArgs
+    add_safe_globals([XttsArgs])
+    print("Added XttsArgs from TTS.tts.models.xtts")
+except ImportError:
+    try:
+        from TTS.tts.configs.xtts_config import XttsArgs
+        add_safe_globals([XttsArgs])
+        print("Added XttsArgs from TTS.tts.configs.xtts_config")
+    except ImportError:
+        print("XttsArgs not found - will try to load model without it and add dynamically if needed")
 
 # Initialize the XTTS model.
 print("Loading XTTS model... (This will take a few minutes on the first run)")
